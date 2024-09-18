@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Sun, Moon, ChevronDown, Copy } from 'lucide-react';
 import { GoogleGenerativeAI, SchemaType } from '@google/generative-ai';
+import Typewriter  from './typeanime';
 
 const genAI = new GoogleGenerativeAI(process.env.REACT_APP_GOOGLE_GEMINI_API_KEY);
 
@@ -98,8 +99,10 @@ const App = () => {
   const handleExamples = () => {
     const grammarExamples = [
       'எனக்கு மிகவும் சந்தோஷமாக இருக்கிறது. நான் புத்தகங்களை படிக்கிறேன்.', 
-      'நான் இந்த மாதிரியான செய்திகளை நம்பவில்லை.', 
-      'உங்களுக்கு எப்படி இருக்கிறீர்கள்? நான் நல்லா இருக்கிறேன்.'
+      'நான் இந்த மாதிரியான செய்திகள நம்பவில்லை.', 
+      'உங்களுக்கு எப்படி இருக்கிறீர்கள்? நான் நல்லா இருக்கிறேன்.',
+      'அவர் கேட்டனான்.',
+      'அவள் படிக்கிறான்',
     ];
 
     const summarizeExamples = [
@@ -216,7 +219,7 @@ const App = () => {
               <div
                 className={`w-full h-96 p-4 border rounded-md overflow-y-auto ${isDarkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-300'}`}
               >
-                {isLoading ? <Spinner /> : outputText}
+                {isLoading ? <Spinner /> : <Typewriter text={outputText} delay={20} />}
               </div>
             </div>
           </div>
