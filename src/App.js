@@ -16,15 +16,25 @@ const App = () => {
   useEffect(() => {
     document.body.classList.toggle('dark', isDarkMode);
   }, [isDarkMode]);
+  const isTamilText = (text) => {
+    const tamilRegex = /^[\u0B80-\u0BFF\s]+$/; // Tamil Unicode range
+    return tamilRegex.test(text.trim());
+  };
 
   const handleProcess = async () => {
     setIsLoading(true);
     let prompt;
 
+    if (!isTamilText(inputText)) {
+      setIsLoading(false);
+      setOutputText('Error: The input is not in Tamil. Please provide Tamil text.');
+      return;
+    }
+
     if (mode === 'summarize') {
-      prompt = `Summarize the following Tamil passage in tamil with length: ${summaryLength}% text: ${inputText} just return the summarized passage as is and dont use any formating`;
+      prompt = `Summarize the following Tamil passage in clear and concise Tamil, with a length of approximately ${summaryLength}% of the original. Ensure the summary captures the main ideas accurately and excludes any offensive, harmful, or irrelevant content. The text is: ${inputText}`;
     } else {
-      prompt = `Correct the grammar of the following Tamil sentence: ${inputText}`;
+      prompt = `Correct the grammar of the following Tamil sentence without altering the original meaning or introducing any offensive, harmful, or irrelevant content. Only focus on grammar corrections: ${inputText}`;
     }
 
     try {
@@ -56,10 +66,10 @@ const App = () => {
         const result = await model.generateContent(prompt);
         const data = result.response.text(); 
         const jsonData = JSON.parse(data);
-        console.log(result);
-        console.log(data);
-        console.log(jsonData);
-        console.log(jsonData.correctedText);
+        // console.log(result);
+        // console.log(data);
+        // console.log(jsonData);
+        // console.log(jsonData.correctedText);
   
         setOutputText(jsonData.correctedText); // Update UI with the corrected text
         setIsLoading(false);
@@ -73,8 +83,8 @@ const App = () => {
         });
         const result = await model.generateContent(prompt);
         const data = result.response.text(); 
-        console.log(result);
-        console.log(data);
+        // console.log(result);
+        // console.log(data);
         setOutputText(data); // Update UI with the summarized text
         setIsLoading(false);
       }
@@ -88,6 +98,12 @@ const App = () => {
   const handleCopy = () => {
     navigator.clipboard.writeText(outputText);
   };
+  
+  const Spinner = () => (
+    <div className="flex justify-center items-center h-full">
+      <div className="animate-spin rounded-full h-10 w-10 border-t-4 border-b-4 border-blue-500"></div>
+    </div>
+  );
 
   return (
     <div className={`flex flex-col min-h-screen ${isDarkMode ? 'bg-gray-900 text-white' : 'bg-gray-50 text-gray-900'}`}>
@@ -111,11 +127,16 @@ const App = () => {
             <div className="relative">
               <select
                 value={mode}
-                onChange={(e) => setMode(e.target.value)}
+                onChange={(e) => {
+                  setMode(e.target.value);
+                  setInputText('');   // Reset the input text
+                  setOutputText('');  // Reset the output text
+                }}
                 className={`appearance-none border ${isDarkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-300'} rounded-md px-4 py-2 pr-8 focus:outline-none focus:ring-2 focus:ring-blue-500`}
               >
-                <option value="summarize">Summarize</option>
                 <option value="grammar">Grammar Check</option>
+                <option value="summarize">Summarize</option>
+
               </select>
               <ChevronDown size={20} className="absolute right-2 top-1/2 transform -translate-y-1/2 pointer-events-none text-gray-500" />
             </div>
@@ -178,7 +199,7 @@ const App = () => {
                   isDarkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-300'
                 }`}
               >
-                {outputText}
+                {isLoading ? <Spinner /> : outputText}
               </div>
             </div>
           </div>
@@ -188,7 +209,7 @@ const App = () => {
       {/* Footer */}
       <footer className={`p-4 ${isDarkMode ? 'bg-gray-800' : 'bg-white'} shadow-md mt-8`}>
         <div className="container mx-auto text-center text-gray-600">
-          <p>Made by Your's Truly</p>
+          <p>Made by Team RPA 😉</p>
         </div>
       </footer>
     </div>
