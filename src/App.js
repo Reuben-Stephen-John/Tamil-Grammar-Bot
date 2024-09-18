@@ -1,9 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { Sun, Moon, ChevronDown, Copy } from 'lucide-react';
-import { GoogleGenerativeAI,SchemaType  } from '@google/generative-ai';
+import { GoogleGenerativeAI, SchemaType } from '@google/generative-ai';
 
 const genAI = new GoogleGenerativeAI(process.env.REACT_APP_GOOGLE_GEMINI_API_KEY);
-
 
 const App = () => {
   const [inputText, setInputText] = useState('');
@@ -12,14 +11,17 @@ const App = () => {
   const [summaryLength, setSummaryLength] = useState(50);
   const [isDarkMode, setIsDarkMode] = useState(true);
   const [isLoading, setIsLoading] = useState(false);
+  const [exampleIndex, setExampleIndex] = useState(0);
 
   useEffect(() => {
     document.body.classList.toggle('dark', isDarkMode);
   }, [isDarkMode]);
+
   const isTamilText = (text) => {
-    const tamilRegex = /^[\u0B80-\u0BFF\s]+$/; // Tamil Unicode range
+    const tamilRegex = /^[\u0B80-\u0BFF\s.,?!]+$/;
     return tamilRegex.test(text.trim());
   };
+  
 
   const handleProcess = async () => {
     setIsLoading(true);
@@ -53,8 +55,7 @@ const App = () => {
           },
         },
       };
-  
-      
+
       if (mode === 'grammar') {
         const model = genAI.getGenerativeModel({
           model: "gemini-1.5-pro",
@@ -66,11 +67,7 @@ const App = () => {
         const result = await model.generateContent(prompt);
         const data = result.response.text(); 
         const jsonData = JSON.parse(data);
-        // console.log(result);
-        // console.log(data);
-        // console.log(jsonData);
-        // console.log(jsonData.correctedText);
-  
+
         setOutputText(jsonData.correctedText); // Update UI with the corrected text
         setIsLoading(false);
       } else if (mode === 'summarize') {
@@ -83,8 +80,7 @@ const App = () => {
         });
         const result = await model.generateContent(prompt);
         const data = result.response.text(); 
-        // console.log(result);
-        // console.log(data);
+
         setOutputText(data); // Update UI with the summarized text
         setIsLoading(false);
       }
@@ -98,7 +94,29 @@ const App = () => {
   const handleCopy = () => {
     navigator.clipboard.writeText(outputText);
   };
-  
+
+  const handleExamples = () => {
+    const grammarExamples = [
+      'எனக்கு மிகவும் சந்தோஷமாக இருக்கிறது. நான் புத்தகங்களை படிக்கிறேன்.', 
+      'நான் இந்த மாதிரியான செய்திகளை நம்பவில்லை.', 
+      'உங்களுக்கு எப்படி இருக்கிறீர்கள்? நான் நல்லா இருக்கிறேன்.'
+    ];
+
+    const summarizeExamples = [
+      'தமிழ் மொழி இந்தியாவின் ஒரு அழகான மொழி ஆகும். இது பல தகுதிகளுடன் கூடிய மொழி ஆகும், அது இலக்கியம், சமூகம், மற்றும் கலாச்சாரம் ஆகியவற்றை உள்ளடக்கியது. தமிழில் பல நூல்கள் எழுதப்பட்டுள்ளன, மேலும் பல தரமான எழுத்தாளர்கள் உலகளாவிய வரவேற்பைப் பெற்றுள்ளனர்.',
+      'உலகிலுள்ள வான் விரிவாக குறியிடும் பொருள்கள் அனைத்தும் சூரியனைப் பற்றியது. சூரியன் மூலமாக உலகம் வாழும் சகல உயிரினங்கள் மின்சாரத்தையும், சுழல்பட்ட வானத்தையும் பெறுகின்றன.',
+      'மழை எப்போதும் மிக முக்கியமானது. இது நமது விவசாயத்திற்கு மிக உதவியாக இருக்கும். மழை இல்லாமல் நாங்கள் உணவு பெற முடியாது.'
+    ];
+
+    if (mode === 'grammar') {
+      setInputText(grammarExamples[exampleIndex]);
+    } else if (mode === 'summarize') {
+      setInputText(summarizeExamples[exampleIndex]);
+    }
+
+    setExampleIndex((prevIndex) => (prevIndex + 1) % (mode === 'grammar' ? grammarExamples.length : summarizeExamples.length));
+  };
+
   const Spinner = () => (
     <div className="flex justify-center items-center h-full">
       <div className="animate-spin rounded-full h-10 w-10 border-t-4 border-b-4 border-blue-500"></div>
@@ -136,7 +154,6 @@ const App = () => {
               >
                 <option value="grammar">Grammar Check</option>
                 <option value="summarize">Summarize</option>
-
               </select>
               <ChevronDown size={20} className="absolute right-2 top-1/2 transform -translate-y-1/2 pointer-events-none text-gray-500" />
             </div>
@@ -154,6 +171,12 @@ const App = () => {
                 <span className="text-sm font-semibold">{summaryLength}%</span>
               </div>
             )}
+            <button
+              onClick={handleExamples}
+              className="ml-4 bg-green-500 text-white py-2 px-4 rounded-md hover:bg-green-600 transition duration-200"
+            >
+              Examples
+            </button>
           </div>
 
           <div className="flex flex-col md:flex-row gap-6">
@@ -164,9 +187,7 @@ const App = () => {
                 value={inputText}
                 onChange={(e) => setInputText(e.target.value)}
                 placeholder="Enter or paste your text here"
-                className={`w-full h-96 p-4 border rounded-md resize-none focus:outline-none focus:ring-2 focus:ring-blue-500 ${
-                  isDarkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-300'
-                }`}
+                className={`w-full h-96 p-4 border rounded-md resize-none focus:outline-none focus:ring-2 focus:ring-blue-500 ${isDarkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-300'}`}
               />
               <button
                 onClick={handleProcess}
@@ -186,18 +207,14 @@ const App = () => {
                 <button
                   onClick={handleCopy}
                   disabled={!outputText}
-                  className={`flex items-center space-x-1 text-sm px-3 py-2 rounded-md transition duration-200 ${
-                    outputText ? 'bg-blue-500 text-white hover:bg-blue-600' : 'bg-gray-300 text-gray-500 cursor-not-allowed'
-                  }`}
+                  className={`flex items-center space-x-1 text-sm px-3 py-2 rounded-md transition duration-200 ${outputText ? 'bg-blue-500 text-white hover:bg-blue-600' : 'bg-gray-300 text-gray-500 cursor-not-allowed'}`}
                 >
                   <Copy size={16} />
                   <span>Copy</span>
                 </button>
               </div>
               <div
-                className={`w-full h-96 p-4 border rounded-md overflow-y-auto ${
-                  isDarkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-300'
-                }`}
+                className={`w-full h-96 p-4 border rounded-md overflow-y-auto ${isDarkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-300'}`}
               >
                 {isLoading ? <Spinner /> : outputText}
               </div>
