@@ -10,7 +10,7 @@ const App = () => {
   const [outputText, setOutputText] = useState('');
   const [mode, setMode] = useState('grammar');
   const [summaryLength, setSummaryLength] = useState(50);
-  const [isDarkMode, setIsDarkMode] = useState(false);
+  const [isDarkMode, setIsDarkMode] = useState(true);
   const [isLoading, setIsLoading] = useState(false);
 
   useEffect(() => {
@@ -94,7 +94,7 @@ const App = () => {
       {/* Navbar */}
       <nav className={`p-4 ${isDarkMode ? 'bg-gray-800' : 'bg-white'} shadow-md`}>
         <div className="container mx-auto flex justify-between items-center">
-          <h1 className="text-2xl font-bold text-blue-600">Text Processor</h1>
+          <h1 className="text-2xl font-bold text-blue-600">Tamil Bot</h1>
           <button
             onClick={() => setIsDarkMode(!isDarkMode)}
             className={`p-2 rounded-full ${isDarkMode ? 'bg-gray-700 text-yellow-300' : 'bg-gray-100 text-gray-600'} hover:bg-opacity-80 transition-colors duration-200`}
@@ -188,7 +188,7 @@ const App = () => {
       {/* Footer */}
       <footer className={`p-4 ${isDarkMode ? 'bg-gray-800' : 'bg-white'} shadow-md mt-8`}>
         <div className="container mx-auto text-center text-gray-600">
-          <p>Made by Your Name</p>
+          <p>Made by Your's Truly</p>
         </div>
       </footer>
     </div>
