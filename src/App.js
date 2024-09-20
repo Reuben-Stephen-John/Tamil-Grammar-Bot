@@ -75,7 +75,22 @@ const App = () => {
 
         setOutputText(jsonData.correctedText); // Update UI with the corrected text
         setIsLoading(false);
-      } else if (mode === 'summarize') {
+      } else if (mode === 'grammar-a') {
+        const model = genAI.getGenerativeModel({
+          model: "gemini-1.5-pro",
+          generationConfig: {
+            responseMimeType: "application/json",
+            responseSchema: schema,
+          },
+        });
+        const result = await model.generateContent(prompt);
+        const data = result.response.text(); 
+        const jsonData = JSON.parse(data);
+
+        setOutputText(jsonData.correctedText); // Update UI with the corrected text
+        setIsLoading(false);
+      }
+      else if (mode === 'summarize') {
         const model = genAI.getGenerativeModel({
           model: "gemini-1.5-flash",
           generationConfig: {
@@ -120,13 +135,13 @@ const App = () => {
       'தற்காலிக வளர்ச்சியின் மூலம், உலகம் இன்று மாறுபட்ட கால நிலைகளை அனுபவிக்கிறது. தொழில்நுட்ப முன்னேற்றம் மற்றும் அறிவியல் கண்டுபிடிப்புகள், மனிதனின் அடுத்தடுத்த செழிப்புகளை உருவாக்குவதாக அமைந்துள்ளன. புதிய கண்டுபிடிப்புகள், இதற்கான பல்வேறு செயல்முறைகள், மற்றும் மனிதன் வாழ்க்கையின் முன்னேற்றத்தை எவ்வாறு அடையலாம் என்பதற்கான வழிமுறைகள் ஆகியவை, ஒரு புதிய கோணத்தில் பொருந்துகின்றன. இதனாலேயே, உலகம் மாறும் போது, அதனை முழுமையாக அணுகுவதற்கும், அது எப்படி செயல்படுகிறதோ அதை புரிந்துகொள்ளுவதற்கும் உதவுகின்றன. இது, தற்காலிகப் பரிமாணங்களை அடையாளம் காண வேண்டிய அவசியத்தை உணர்த்துகிறது.'
     ];
 
-    if (mode === 'grammar') {
+    if (mode === 'grammar' || mode === 'grammar-a') {
       setInputText(grammarExamples[exampleIndex]);
     } else if (mode === 'summarize') {
       setInputText(summarizeExamples[exampleIndex]);
     }
     setOutputText('');
-    setExampleIndex((prevIndex) => (prevIndex + 1) % (mode === 'grammar' ? grammarExamples.length : summarizeExamples.length));
+    setExampleIndex((prevIndex) => (prevIndex + 1) % ((mode === 'grammar' || mode=== 'grammar-a') ? grammarExamples.length : summarizeExamples.length));
   };
 
   const Spinner = () => (
@@ -166,6 +181,7 @@ const App = () => {
           >
             <option value="grammar">Grammar Check</option>
             <option value="summarize">Summarize</option>
+            <option value="grammar-a">Grammar Check-A</option>
           </select>
           <ChevronDown size={20} className="absolute right-2 top-1/2 transform -translate-y-1/2 pointer-events-none text-gray-500" />
         </div>
