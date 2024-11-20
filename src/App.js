@@ -1,7 +1,6 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Sun, Moon, ChevronDown, Copy } from 'lucide-react';
 import { GoogleGenerativeAI, SchemaType } from '@google/generative-ai';
-import Typewriter  from './typeanime';
 
 const genAI = new GoogleGenerativeAI(process.env.REACT_APP_GOOGLE_GEMINI_API_KEY);
 
@@ -22,7 +21,70 @@ const App = () => {
     const tamilRegex = /^[\u0B80-\u0BFF\s.,?!]+$/;
     return tamilRegex.test(text.trim());
   };
+
+  const highlightDifferences = (original, corrected) => {
+    const words1 = original.split(' ');
+    const words2 = corrected.split(' ');
+    let result = [];
+    let i = 0, j = 0;
   
+    while (i < words1.length || j < words2.length) {
+      if (i >= words1.length) {
+        result.push(<span key={`added-${j}`} className="text-green-500">{words2[j]} </span>);
+        j++;
+      } else if (words1[i] === words2[j]) {
+        result.push(<span key={`unchanged-${i}`}>{words1[i]} </span>);
+        i++;
+        j++;
+      } else {
+        result.push(<span key={`changed-${j}`} className="text-green-500">{words2[j]} </span>);
+        i++;
+        j++;
+      }
+    }
+  
+    return result;
+  };
+  
+  const HighlightedTypewriter = ({ inputText, outputText, delay }) => {
+    const [displayText, setDisplayText] = useState('');
+    const [isComplete, setIsComplete] = useState(false);
+    const timeoutRef = useRef(null);
+  
+    useEffect(() => {
+      setDisplayText('');
+      setIsComplete(false);
+  
+      const typeWriter = (text, index) => {
+        if (index < text.length) {
+          setDisplayText(text.slice(0, index + 1));
+          timeoutRef.current = setTimeout(() => {
+            typeWriter(text, index + 1);
+          }, delay);
+        } else {
+          setIsComplete(true);
+        }
+      };
+  
+      typeWriter(outputText, 0);
+  
+      return () => {
+        if (timeoutRef.current) {
+          clearTimeout(timeoutRef.current);
+        }
+      };
+    }, [outputText, delay]);
+  
+    return (
+      <div>
+        {isComplete ? (
+          highlightDifferences(inputText, outputText)
+        ) : (
+          highlightDifferences(inputText, displayText)
+        )}
+      </div>
+    );
+  };
 
   const handleProcess = async () => {
     setIsLoading(true);
@@ -34,7 +96,6 @@ const App = () => {
       return;
     }
 
-    // Map slider value to percentage
     const percentageOptions = [10, 30, 70];
     const selectedPercentage = percentageOptions[summaryLength];
     if (mode === 'summarize') {
@@ -42,7 +103,6 @@ const App = () => {
     } else {
       prompt = `Correct the grammar of the following Tamil sentence without altering the original meaning or introducing any offensive, harmful, or irrelevant content. Only focus on grammar corrections: ${inputText}`;
     }
-
 
     try {
       const schema = {
@@ -73,7 +133,7 @@ const App = () => {
         const data = result.response.text(); 
         const jsonData = JSON.parse(data);
 
-        setOutputText(jsonData.correctedText); // Update UI with the corrected text
+        setOutputText(jsonData.correctedText);
         setIsLoading(false);
       } else if (mode === 'grammar-a') {
         const model = genAI.getGenerativeModel({
@@ -87,21 +147,18 @@ const App = () => {
         const data = result.response.text(); 
         const jsonData = JSON.parse(data);
 
-        setOutputText(jsonData.correctedText); // Update UI with the corrected text
+        setOutputText(jsonData.correctedText);
         setIsLoading(false);
       }
       else if (mode === 'summarize') {
         const model = genAI.getGenerativeModel({
           model: "gemini-1.5-flash",
-          generationConfig: {
-            // responseMimeType: "application/json",
-            // responseSchema: schema,
-          },
+          generationConfig: {},
         });
         const result = await model.generateContent(prompt);
         const data = result.response.text(); 
 
-        setOutputText(data); // Update UI with the summarized text
+        setOutputText(data);
         setIsLoading(false);
       }
     } catch (error) {
@@ -112,8 +169,8 @@ const App = () => {
   };
 
   const handleReset = () => {
-    setInputText(''); // Clear input text
-    setOutputText(''); // Clear output text (if you have an output state)
+    setInputText('');
+    setOutputText('');
   };
 
   const handleCopy = () => {
@@ -141,7 +198,7 @@ const App = () => {
       setInputText(summarizeExamples[exampleIndex]);
     }
     setOutputText('');
-    setExampleIndex((prevIndex) => (prevIndex + 1) % ((mode === 'grammar' || mode=== 'grammar-a') ? grammarExamples.length : summarizeExamples.length));
+    setExampleIndex((prevIndex) => (prevIndex + 1) % ((mode === 'grammar' || mode === 'grammar-a') ? grammarExamples.length : summarizeExamples.length));
   };
 
   const Spinner = () => (
@@ -152,7 +209,6 @@ const App = () => {
 
   return (
     <div className={`flex flex-col min-h-screen ${isDarkMode ? 'bg-gray-900 text-white' : 'bg-gray-50 text-gray-900'}`}>
-      {/* Navbar */}
       <nav className={`p-4 ${isDarkMode ? 'bg-gray-800' : 'bg-white'} shadow-md`}>
         <div className="container mx-auto flex justify-between items-center">
           <h1 className="text-2xl font-bold text-blue-600">தமிழ் Bot</h1>
@@ -164,56 +220,52 @@ const App = () => {
           </button>
         </div>
       </nav>
-
-      {/* Main content */}
+  
       <main className="flex-grow container mx-auto p-6 flex flex-col items-center">
         <div className="w-full max-w-5xl">
-        <div className="mb-6 flex flex-col md:flex-row justify-between items-center space-y-4 md:space-y-0">
-        <div className="relative md:w-auto">
-          <select
-            value={mode}
-            onChange={(e) => {
-              setMode(e.target.value);
-              setInputText('');   // Reset the input text
-              setOutputText('');  // Reset the output text
-            }}
-            className={`appearance-none border ${isDarkMode ? 'bg-gray-800 border-gray-700' : 'bg-blue-50 border-blu-800'} rounded-md px-4 py-2 pr-8 focus:outline-none focus:ring-2 focus:ring-blue-500`}
-          >
-            <option value="grammar">Grammar Check</option>
-            <option value="summarize">Summarize</option>
-            <option value="grammar-a">Grammar Check-A</option>
-          </select>
-          <ChevronDown size={20} className="absolute right-2 top-1/2 transform -translate-y-1/2 pointer-events-none text-gray-500" />
-        </div>
-        
-        {mode === 'summarize' && (
-          <div className="flex flex-col md:flex-row items-center space-y-2 md:space-y-0 md:space-x-2">
-            <span className="text-sm">Summary Length:</span>
-            <input
-              type="range"
-              min="0"
-              max="2"
-              step="1"
-              value={summaryLength}
-              onChange={(e) => setSummaryLength(e.target.value)}
-              className="w-full md:w-24"
-            />
-            <span className="text-sm font-semibold">{['Short', 'Medium', 'Long'][summaryLength]}</span>
+          <div className="mb-6 flex flex-col md:flex-row justify-between items-center space-y-4 md:space-y-0">
+            <div className="relative md:w-auto">
+              <select
+                value={mode}
+                onChange={(e) => {
+                  setMode(e.target.value);
+                setInputText('');
+                  setOutputText('');
+                }}
+                className={`appearance-none border ${isDarkMode ? 'bg-gray-800 border-gray-700' : 'bg-blue-50 border-blu-800'} rounded-md px-4 py-2 pr-8 focus:outline-none focus:ring-2 focus:ring-blue-500`}
+              >
+                <option value="grammar">Grammar Check</option>
+                <option value="summarize">Summarize</option>
+                <option value="grammar-a">Grammar Check-A</option>
+              </select>
+              <ChevronDown size={20} className="absolute right-2 top-1/2 transform -translate-y-1/2 pointer-events-none text-gray-500" />
+            </div>
+            
+            {mode === 'summarize' && (
+              <div className="flex flex-col md:flex-row items-center space-y-2 md:space-y-0 md:space-x-2">
+                <span className="text-sm">Summary Length:</span>
+                <input
+                  type="range"
+                  min="0"
+                  max="2"
+                  step="1"
+                  value={summaryLength}
+                  onChange={(e) => setSummaryLength(e.target.value)}
+                  className="w-full md:w-24"
+                />
+                <span className="text-sm font-semibold">{['Short', 'Medium', 'Long'][summaryLength]}</span>
+              </div>
+            )}
+            
+            <button
+              onClick={handleExamples}
+              className="bg-green-500 text-white py-2 px-4 rounded-md hover:bg-green-600 transition duration-200"
+            >
+              Examples
+            </button>
           </div>
-        )}
-        
-        <button
-          onClick={handleExamples}
-          className="bg-green-500 text-white py-2 px-4 rounded-md hover:bg-green-600 transition duration-200"
-        >
-          Examples
-        </button>
-      </div>
-
-
-
+  
           <div className="flex flex-col md:flex-row gap-6">
-            {/* Input */}
             <div className={`w-full md:w-1/2 space-y-4 p-4 ${isDarkMode ? 'bg-gray-800 border-gray-700' : 'bg-blue-50 border-blue-800'} shadow-lg rounded-md`}>
               <h2 className="text-xl font-semibold text-blue-600">Input Text</h2>
               <textarea
@@ -239,8 +291,7 @@ const App = () => {
                 </button>
               </div>
             </div>
-
-            {/* Output */}
+  
             <div className={`w-full md:w-1/2 space-y-4 p-4 ${isDarkMode ? 'bg-gray-800 border-gray-700' : 'bg-blue-50 border-blue-800'} shadow-lg rounded-md`}>
               <div className="flex justify-between items-center">
                 <h2 className="text-xl font-semibold text-blue-600">
@@ -256,15 +307,21 @@ const App = () => {
                 </button>
               </div>
               <div className={`w-full h-96 p-4 border rounded-md overflow-y-auto ${isDarkMode ? 'bg-gray-900 border-gray-700' : 'bg-white border-gray-300'}`}>
-                {isLoading ? <Spinner /> : <Typewriter text={outputText} delay={20} />}
+                {isLoading ? (
+                  <Spinner />
+                ) : (
+                  <HighlightedTypewriter 
+                    inputText={inputText}
+                    outputText={outputText}
+                    delay={20}
+                  />
+                )}
               </div>
             </div>
-
           </div>
         </div>
       </main>
-
-      {/* Footer */}
+  
       <footer className={`p-4 ${isDarkMode ? 'bg-gray-800' : 'bg-white'} shadow-md mt-8`}>
         <div className="container mx-auto text-center text-gray-600">
           <p>Made by Team RPA 😉</p>
