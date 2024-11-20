@@ -1,9 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Sun, Moon, ChevronDown, Copy } from 'lucide-react';
-import { GoogleGenerativeAI, SchemaType } from '@google/generative-ai';
+import { processText } from './Service';
 import Typewriter  from './typeanime';
-
-const genAI = new GoogleGenerativeAI(process.env.REACT_APP_GOOGLE_GEMINI_API_KEY);
 
 const App = () => {
   const [inputText, setInputText] = useState('');
@@ -22,11 +20,9 @@ const App = () => {
     const tamilRegex = /^[\u0B80-\u0BFF\s.,?!]+$/;
     return tamilRegex.test(text.trim());
   };
-  
 
   const handleProcess = async () => {
     setIsLoading(true);
-    let prompt;
 
     if (!isTamilText(inputText)) {
       setIsLoading(false);
@@ -34,81 +30,14 @@ const App = () => {
       return;
     }
 
-    // Map slider value to percentage
-    const percentageOptions = [10, 30, 70];
-    const selectedPercentage = percentageOptions[summaryLength];
-    if (mode === 'summarize') {
-      prompt = `Summarize the following Tamil passage in clear and concise Tamil, with a length of approximately ${selectedPercentage}% of the original passage. Ensure the summary captures the main ideas accurately and excludes any offensive, harmful, or irrelevant content. The text is: ${inputText}`;
-    } else {
-      prompt = `Correct the grammar of the following Tamil sentence without altering the original meaning or introducing any offensive, harmful, or irrelevant content. Only focus on grammar corrections: ${inputText}`;
-    }
-
-
     try {
-      const schema = {
-        type: SchemaType.OBJECT,
-        properties: {
-          correctedText: {
-            type: SchemaType.STRING,
-            description: "The grammatically corrected Tamil sentence.",
-            nullable: true,
-          },
-          summarizedText: {
-            type: SchemaType.STRING,
-            description: "The summarized Tamil text, if summarization mode is chosen.",
-            nullable: true,
-          },
-        },
-      };
-
-      if (mode === 'grammar') {
-        const model = genAI.getGenerativeModel({
-          model: "gemini-1.5-flash",
-          generationConfig: {
-            responseMimeType: "application/json",
-            responseSchema: schema,
-          },
-        });
-        const result = await model.generateContent(prompt);
-        const data = result.response.text(); 
-        const jsonData = JSON.parse(data);
-
-        setOutputText(jsonData.correctedText); // Update UI with the corrected text
-        setIsLoading(false);
-      } else if (mode === 'grammar-a') {
-        const model = genAI.getGenerativeModel({
-          model: "gemini-1.5-pro",
-          generationConfig: {
-            responseMimeType: "application/json",
-            responseSchema: schema,
-          },
-        });
-        const result = await model.generateContent(prompt);
-        const data = result.response.text(); 
-        const jsonData = JSON.parse(data);
-
-        setOutputText(jsonData.correctedText); // Update UI with the corrected text
-        setIsLoading(false);
-      }
-      else if (mode === 'summarize') {
-        const model = genAI.getGenerativeModel({
-          model: "gemini-1.5-flash",
-          generationConfig: {
-            // responseMimeType: "application/json",
-            // responseSchema: schema,
-          },
-        });
-        const result = await model.generateContent(prompt);
-        const data = result.response.text(); 
-
-        setOutputText(data); // Update UI with the summarized text
-        setIsLoading(false);
-      }
+      const result = await processText(inputText, mode, summaryLength);
+      setOutputText(result);
     } catch (error) {
-      console.error("Error generating content:", error);
       setOutputText("An error occurred while processing the request.");
+    } finally {
       setIsLoading(false);
-    }    
+    }
   };
 
   const handleReset = () => {
